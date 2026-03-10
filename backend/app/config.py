@@ -41,26 +41,31 @@ class Settings(BaseSettings):
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        # Parse URL and remove Vercel-specific query parameters
+        # Parse URL and clean up/add parameters
         parsed = urlparse(url)
-        if parsed.query:
-            # Parse query string
-            query_params = parse_qs(parsed.query)
-            # Remove all Vercel-specific parameters (asyncpg doesn't support them)
-            vercel_params = ['sslmode', 'supa', 'pgbouncer', 'connection_limit']
-            for param in vercel_params:
-                query_params.pop(param, None)
-            # Rebuild query string (will be empty if all params removed)
-            new_query = urlencode(query_params, doseq=True) if query_params else ''
-            # Rebuild URL
-            url = urlunparse((
-                parsed.scheme,
-                parsed.netloc,
-                parsed.path,
-                parsed.params,
-                new_query,
-                parsed.fragment
-            ))
+        query_params = parse_qs(parsed.query) if parsed.query else {}
+
+        # Remove Vercel-specific parameters that asyncpg doesn't support
+        vercel_params = ['sslmode', 'supa', 'pgbouncer', 'connection_limit']
+        for param in vercel_params:
+            query_params.pop(param, None)
+
+        # Add statement_cache_size=0 as URL parameter to disable prepared statements
+        # This is the most reliable way to pass this to asyncpg through SQLAlchemy
+        query_params['statement_cache_size'] = ['0']
+
+        # Rebuild query string
+        new_query = urlencode(query_params, doseq=True)
+
+        # Rebuild URL
+        url = urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            parsed.params,
+            new_query,
+            parsed.fragment
+        ))
 
         return url
 

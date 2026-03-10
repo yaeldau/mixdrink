@@ -3,12 +3,17 @@ from sqlalchemy.orm import declarative_base
 from app.config import settings
 
 # Create async engine
-# Note: statement_cache_size=0 is required for Vercel Postgres (pgbouncer compatibility)
+# Note: prepared_statement_cache_size=0 is required for Vercel Postgres (pgbouncer compatibility)
 engine = create_async_engine(
     settings.db_url,
     echo=True,  # Log SQL queries (disable in production)
     future=True,
-    connect_args={"statement_cache_size": 0}  # Disable prepared statements for pgbouncer
+    connect_args={
+        "server_settings": {"jit": "off"},  # Disable JIT
+        "statement_cache_size": 0,  # Disable prepared statements for pgbouncer
+        "prepared_statement_cache_size": 0  # Also disable prepared statement cache
+    },
+    pool_pre_ping=True  # Verify connections before using them
 )
 
 # Create async session factory

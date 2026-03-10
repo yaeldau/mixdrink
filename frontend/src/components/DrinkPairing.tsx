@@ -5,6 +5,7 @@ interface Drink {
   id: number;
   name: string;
   category: string;
+  subcategory?: string;
 }
 
 interface Recommendation {
@@ -36,11 +37,21 @@ export default function DrinkPairing() {
       .catch(err => console.error('Failed to load drinks:', err));
   }, []);
 
-  // Filter drinks based on search query
-  const filteredDrinks = allDrinks.filter(drink =>
-    drink.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    !selectedDrinks.includes(drink.name)
-  );
+  // Filter drinks based on search query - match name, category, or subcategory
+  const filteredDrinks = allDrinks.filter(drink => {
+    if (selectedDrinks.includes(drink.name)) return false;
+
+    const query = searchQuery.toLowerCase();
+    const name = drink.name.toLowerCase();
+    const category = drink.category.toLowerCase();
+    const subcategory = (drink as any).subcategory?.toLowerCase() || '';
+
+    // Match name, category, or subcategory (with or without underscore)
+    return name.includes(query) ||
+           category.includes(query) ||
+           subcategory.includes(query) ||
+           subcategory.replace('_', ' ').includes(query);
+  });
 
   const addDrink = (drinkName: string) => {
     if (!selectedDrinks.includes(drinkName)) {
@@ -118,18 +129,30 @@ export default function DrinkPairing() {
             </div>
 
             {/* Dropdown */}
-            {showDropdown && searchQuery && filteredDrinks.length > 0 && (
+            {showDropdown && searchQuery && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {filteredDrinks.slice(0, 10).map((drink) => (
-                  <button
-                    key={drink.id}
-                    onClick={() => addDrink(drink.name)}
-                    className="w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="font-medium text-gray-900">{drink.name}</div>
-                    <div className="text-xs text-gray-500 capitalize">{drink.category}</div>
-                  </button>
-                ))}
+                {filteredDrinks.length > 0 ? (
+                  filteredDrinks.slice(0, 15).map((drink) => {
+                    const subcategoryDisplay = drink.subcategory
+                      ? drink.subcategory.replace('_', ' ')
+                      : drink.category;
+
+                    return (
+                      <button
+                        key={drink.id}
+                        onClick={() => addDrink(drink.name)}
+                        className="w-full px-4 py-3 text-left hover:bg-purple-50 transition-colors border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{drink.name}</div>
+                        <div className="text-xs text-gray-500 capitalize">{subcategoryDisplay}</div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-3 text-sm text-gray-500">
+                    No drinks found. Try searching for specific names like "Merlot", "Whiskey", or "Vodka"
+                  </div>
+                )}
               </div>
             )}
           </div>

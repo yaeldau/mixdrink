@@ -83,8 +83,9 @@ async def init_database():
 
 
 # Route registration
-from app.api.routes import drinks, session, recommendations
+from app.api.routes import drinks, session, recommendations, pairing
 
 app.include_router(drinks.router, prefix="/api", tags=["drinks"])
 app.include_router(session.router, prefix="/api", tags=["session"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+app.include_router(pairing.router, prefix="/api", tags=["pairing"])

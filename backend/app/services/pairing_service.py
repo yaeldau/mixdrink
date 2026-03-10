@@ -34,26 +34,27 @@ class PairingService:
         all_drinks = result.scalars().all()
         drink_names = [drink.name for drink in all_drinks]
 
-        # Create prompt for Claude
-        prompt = self._create_pairing_prompt(consumed_drinks, drink_names)
-
-        # Call Claude API
-        message = self.client.messages.create(
-            model=settings.claude_model,
-            max_tokens=settings.max_tokens,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-        # Parse response
-        response_text = message.content[0].text
-
-        # Extract JSON from response
+        # Try AI recommendations first
         try:
+            # Create prompt for Claude
+            prompt = self._create_pairing_prompt(consumed_drinks, drink_names)
+
+            # Call Claude API
+            message = self.client.messages.create(
+                model=settings.claude_model,
+                max_tokens=settings.max_tokens,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            )
+
+            # Parse response
+            response_text = message.content[0].text
+
+            # Extract JSON from response
             # Claude might wrap JSON in markdown code blocks
             if "```json" in response_text:
                 json_start = response_text.find("```json") + 7
@@ -67,13 +68,8 @@ class PairingService:
             recommendations = json.loads(response_text)
             return recommendations
         except Exception as e:
-            # Fallback if parsing fails
-            return {
-                "good_combinations": [],
-                "okay_combinations": [],
-                "not_recommended": [],
-                "error": f"Failed to parse recommendations: {str(e)}"
-            }
+            # Fallback to rule-based recommendations if API fails
+            return self._get_fallback_recommendations(consumed_drinks, all_drinks)
 
     def _create_pairing_prompt(self, consumed_drinks: List[str], available_drinks: List[str]) -> str:
         """Create the prompt for Claude API."""
@@ -118,6 +114,87 @@ Return your response as a JSON object with this exact structure:
 IMPORTANT: Return ONLY the JSON object, no additional text."""
 
         return prompt
+
+    def _get_fallback_recommendations(self, consumed_drinks: List[str], all_drinks: List[Drink]) -> Dict:
+        """
+        Fallback rule-based recommendations when AI is unavailable.
+        Provides simple category-based pairing logic.
+        """
+        import random
+
+        # Categorize consumed drinks
+        consumed_categories = set()
+        for drink in all_drinks:
+            if drink.name in consumed_drinks:
+                consumed_categories.add(drink.category)
+
+        # Get drinks not yet consumed
+        available_drinks = [d for d in all_drinks if d.name not in consumed_drinks]
+
+        # Simple pairing rules
+        good = []
+        okay = []
+        not_recommended = []
+
+        # Spirits pairing logic
+        if "spirit" in consumed_categories or "cocktail" in consumed_categories:
+            # Good: wines, lighter cocktails
+            good = [d for d in available_drinks if d.category in ["wine", "liqueur"]][:3]
+            # Okay: other spirits
+            okay = [d for d in available_drinks if d.category == "spirit"][:3]
+            # Not recommended: heavy beers
+            not_recommended = [d for d in available_drinks if d.category == "beer"][:3]
+        elif "wine" in consumed_categories:
+            # Good: liqueurs, light cocktails
+            good = [d for d in available_drinks if d.category in ["liqueur", "cocktail"]][:3]
+            # Okay: other wines
+            okay = [d for d in available_drinks if d.category == "wine"][:3]
+            # Not recommended: strong spirits
+            not_recommended = [d for d in available_drinks if d.category == "spirit"][:3]
+        else:
+            # Default: random selection
+            random.shuffle(available_drinks)
+            good = available_drinks[:3]
+            okay = available_drinks[3:6]
+            not_recommended = available_drinks[6:9]
+
+        # Pad with random if not enough
+        if len(good) < 3:
+            remaining = [d for d in available_drinks if d not in good]
+            random.shuffle(remaining)
+            good.extend(remaining[:3 - len(good)])
+        if len(okay) < 3:
+            remaining = [d for d in available_drinks if d not in good and d not in okay]
+            random.shuffle(remaining)
+            okay.extend(remaining[:3 - len(okay)])
+        if len(not_recommended) < 3:
+            remaining = [d for d in available_drinks if d not in good and d not in okay and d not in not_recommended]
+            random.shuffle(remaining)
+            not_recommended.extend(remaining[:3 - len(not_recommended)])
+
+        return {
+            "good_combinations": [
+                {
+                    "drink_name": d.name,
+                    "explanation": f"Pairs nicely with {consumed_drinks[0]} - complementary flavor profile."
+                }
+                for d in good[:3]
+            ],
+            "okay_combinations": [
+                {
+                    "drink_name": d.name,
+                    "explanation": f"An acceptable choice after {consumed_drinks[0]} - won't clash significantly."
+                }
+                for d in okay[:3]
+            ],
+            "not_recommended": [
+                {
+                    "drink_name": d.name,
+                    "explanation": f"May not pair well with {consumed_drinks[0]} - consider other options."
+                }
+                for d in not_recommended[:3]
+            ]
+        }
 
 
 # Singleton instance

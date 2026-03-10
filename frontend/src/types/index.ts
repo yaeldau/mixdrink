@@ -39,8 +39,7 @@ export interface ConsumedDrink {
   drink?: Drink; // populated by backend
 }
 
-export interface SessionWithDrinks {
-  session: DrinkSession;
+export interface SessionWithDrinks extends DrinkSession {
   consumed_drinks: ConsumedDrink[];
 }
 

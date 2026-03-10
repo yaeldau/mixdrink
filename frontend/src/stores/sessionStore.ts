@@ -40,14 +40,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const sessionData = await sessionApi.getCurrentSession();
+      const { consumed_drinks, ...session } = sessionData;
       set({
-        currentSession: sessionData.session,
-        consumedDrinks: sessionData.consumed_drinks,
+        currentSession: session,
+        consumedDrinks: consumed_drinks || [],
         isLoading: false
       });
-    } catch (error) {
+    } catch (error: any) {
       // If no active session exists, that's okay - it will be created on first consume
-      if (error instanceof Error && error.message.includes('404')) {
+      if (error?.response?.status === 404) {
         set({
           currentSession: null,
           consumedDrinks: [],
@@ -102,10 +103,10 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   resetSession: async () => {
     set({ isLoading: true, error: null });
     try {
-      const sessionData = await sessionApi.resetSession();
+      const newSession = await sessionApi.resetSession();
       set({
-        currentSession: sessionData.session,
-        consumedDrinks: sessionData.consumed_drinks,
+        currentSession: newSession,
+        consumedDrinks: [],
         recommendations: [],
         sessionContext: null,
         isLoading: false

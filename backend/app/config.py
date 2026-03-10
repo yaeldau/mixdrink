@@ -31,15 +31,17 @@ class Settings(BaseSettings):
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-        # Parse URL and remove problematic query parameters
+        # Parse URL and remove Vercel-specific query parameters
         parsed = urlparse(url)
         if parsed.query:
             # Parse query string
             query_params = parse_qs(parsed.query)
-            # Remove sslmode parameter (asyncpg doesn't support it)
-            query_params.pop('sslmode', None)
-            # Rebuild query string
-            new_query = urlencode(query_params, doseq=True)
+            # Remove all Vercel-specific parameters (asyncpg doesn't support them)
+            vercel_params = ['sslmode', 'supa', 'pgbouncer', 'connection_limit']
+            for param in vercel_params:
+                query_params.pop(param, None)
+            # Rebuild query string (will be empty if all params removed)
+            new_query = urlencode(query_params, doseq=True) if query_params else ''
             # Rebuild URL
             url = urlunparse((
                 parsed.scheme,

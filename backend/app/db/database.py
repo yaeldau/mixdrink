@@ -4,7 +4,7 @@ from app.config import settings
 
 # Create async engine
 engine = create_async_engine(
-    settings.database_url,
+    settings.db_url,
     echo=True,  # Log SQL queries (disable in production)
     future=True
 )

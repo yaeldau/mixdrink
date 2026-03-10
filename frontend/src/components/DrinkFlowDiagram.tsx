@@ -4,19 +4,17 @@ import {
   Background,
   Controls,
   MiniMap,
-  Node,
-  Edge,
   useNodesState,
   useEdgesState,
   Position,
 } from '@xyflow/react';
+import type { Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useSessionStore } from '../stores/sessionStore';
-import type { ConsumedDrink } from '../types';
 
 // Custom node component for consumed drinks
 function DrinkNode({ data }: { data: any }) {
-  const getCategoryColor = (category: string): string => {
+  const getCategoryColor = (category: string | undefined): string => {
     const colors: Record<string, string> = {
       spirit: 'bg-amber-500',
       cocktail: 'bg-purple-500',
@@ -24,7 +22,7 @@ function DrinkNode({ data }: { data: any }) {
       beer: 'bg-yellow-500',
       liqueur: 'bg-pink-500',
     };
-    return colors[category?.toLowerCase()] || 'bg-gray-500';
+    return colors[category?.toLowerCase() || ''] || 'bg-gray-500';
   };
 
   return (
@@ -58,8 +56,8 @@ const nodeTypes = {
 
 export function DrinkFlowDiagram() {
   const { consumedDrinks, currentSession } = useSessionStore();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   // Convert consumed drinks to ReactFlow nodes and edges
   useEffect(() => {
@@ -223,7 +221,7 @@ export function DrinkFlowDiagram() {
         <Controls />
         <MiniMap
           nodeColor={(node) => {
-            const category = node.data?.category?.toLowerCase();
+            const category = (node.data?.category as string | undefined)?.toLowerCase();
             const colors: Record<string, string> = {
               spirit: '#f59e0b',
               cocktail: '#a855f7',
@@ -231,7 +229,7 @@ export function DrinkFlowDiagram() {
               beer: '#eab308',
               liqueur: '#ec4899',
             };
-            return colors[category] || '#9ca3af';
+            return colors[category || ''] || '#9ca3af';
           }}
           maskColor="rgba(0, 0, 0, 0.1)"
         />

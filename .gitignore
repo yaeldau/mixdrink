@@ -61,3 +61,4 @@ frontend/dist/
 
 # Alembic
 backend/alembic/versions/*.pyc
+.vercel

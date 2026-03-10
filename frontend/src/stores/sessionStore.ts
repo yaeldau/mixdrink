@@ -65,7 +65,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   consumeDrink: async (drinkId: number, notes?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const consumedDrink = await sessionApi.consumeDrink({
+      await sessionApi.consumeDrink({
         drink_id: drinkId,
         notes
       });

@@ -1,6 +1,6 @@
 import { useSessionStore } from '../stores/sessionStore';
 import { useDrinkStore } from '../stores/drinkStore';
-import { Sparkles, Loader2, AlertCircle, X } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export function RecommendationPanel() {

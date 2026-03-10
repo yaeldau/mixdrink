@@ -118,81 +118,159 @@ IMPORTANT: Return ONLY the JSON object, no additional text."""
     def _get_fallback_recommendations(self, consumed_drinks: List[str], all_drinks: List[Drink]) -> Dict:
         """
         Fallback rule-based recommendations when AI is unavailable.
-        Provides simple category-based pairing logic.
+        Provides category-based pairing logic with general drink types.
         """
         import random
 
-        # Categorize consumed drinks
-        consumed_categories = set()
+        # Map consumed drinks to their details
+        consumed_details = []
         for drink in all_drinks:
             if drink.name in consumed_drinks:
-                consumed_categories.add(drink.category)
+                consumed_details.append({
+                    'name': drink.name,
+                    'category': drink.category,
+                    'subcategory': drink.subcategory
+                })
 
-        # Get drinks not yet consumed
-        available_drinks = [d for d in all_drinks if d.name not in consumed_drinks]
+        # Group drinks by subcategory (for general recommendations)
+        subcategory_groups = {}
+        for drink in all_drinks:
+            if drink.subcategory not in subcategory_groups:
+                subcategory_groups[drink.subcategory] = []
+            subcategory_groups[drink.subcategory].append(drink)
 
-        # Simple pairing rules
-        good = []
-        okay = []
-        not_recommended = []
+        # Get unique subcategories not consumed
+        consumed_subcategories = {d['subcategory'] for d in consumed_details}
+        available_subcategories = [
+            sub for sub in subcategory_groups.keys()
+            if sub not in consumed_subcategories
+        ]
 
-        # Spirits pairing logic
-        if "spirit" in consumed_categories or "cocktail" in consumed_categories:
-            # Good: wines, lighter cocktails
-            good = [d for d in available_drinks if d.category in ["wine", "liqueur"]][:3]
-            # Okay: other spirits
-            okay = [d for d in available_drinks if d.category == "spirit"][:3]
-            # Not recommended: heavy beers
-            not_recommended = [d for d in available_drinks if d.category == "beer"][:3]
-        elif "wine" in consumed_categories:
-            # Good: liqueurs, light cocktails
-            good = [d for d in available_drinks if d.category in ["liqueur", "cocktail"]][:3]
-            # Okay: other wines
-            okay = [d for d in available_drinks if d.category == "wine"][:3]
-            # Not recommended: strong spirits
-            not_recommended = [d for d in available_drinks if d.category == "spirit"][:3]
+        # Define pairing rules
+        def get_category_name(subcategory: str) -> str:
+            """Convert subcategory to readable name."""
+            names = {
+                'vodka': 'Vodka',
+                'gin': 'Gin',
+                'rum': 'Rum',
+                'tequila': 'Tequila',
+                'whiskey': 'Whiskey',
+                'red_wine': 'Red Wine',
+                'white_wine': 'White Wine',
+                'sparkling': 'Sparkling Wine',
+                'beer': 'Beer',
+                'ipa': 'IPA Beer',
+                'stout': 'Stout Beer',
+                'lager': 'Lager Beer',
+                'liqueur': 'Liqueur',
+                'cocktail': 'Cocktails'
+            }
+            return names.get(subcategory, subcategory.replace('_', ' ').title())
+
+        def get_explanation(subcategory: str, rating: str, consumed: list) -> str:
+            """Generate explanation based on consumed drinks and rating."""
+            consumed_types = [get_category_name(d['subcategory']) for d in consumed]
+            consumed_str = ' and '.join(consumed_types) if len(consumed_types) <= 2 else ', '.join(consumed_types[:-1]) + f', and {consumed_types[-1]}'
+
+            drink_type = get_category_name(subcategory)
+
+            if rating == 'good':
+                reasons = [
+                    f"{drink_type} complements the flavors you've been enjoying.",
+                    f"After {consumed_str}, {drink_type} offers a nice flavor progression.",
+                    f"{drink_type} pairs well with the drink profile you've established.",
+                ]
+            elif rating == 'okay':
+                reasons = [
+                    f"{drink_type} won't clash, but may not be the most interesting choice.",
+                    f"A safe option after {consumed_str}, though not the most exciting pairing.",
+                    f"{drink_type} is acceptable, but consider our top recommendations first.",
+                ]
+            else:  # not recommended
+                reasons = [
+                    f"{drink_type} may clash with {consumed_str} - can cause flavor fatigue.",
+                    f"After {consumed_str}, {drink_type} could be overwhelming or unbalanced.",
+                    f"Mixing {consumed_str} with {drink_type} isn't ideal - try our better pairings instead.",
+                ]
+
+            return random.choice(reasons)
+
+        # Simple pairing logic based on what's consumed
+        good_subs = []
+        okay_subs = []
+        bad_subs = []
+
+        # Check what categories were consumed
+        has_spirit = any(d['category'] == 'spirit' for d in consumed_details)
+        has_wine = any(d['category'] == 'wine' for d in consumed_details)
+        has_beer = any(d['category'] == 'beer' for d in consumed_details)
+        has_cocktail = any(d['category'] == 'cocktail' for d in consumed_details)
+
+        if has_spirit or has_cocktail:
+            # After spirits/cocktails: wines good, liqueurs okay, more spirits risky
+            good_subs = [s for s in available_subcategories if s in ['red_wine', 'white_wine', 'sparkling', 'liqueur']]
+            okay_subs = [s for s in available_subcategories if s in ['cocktail', 'beer', 'lager']]
+            bad_subs = [s for s in available_subcategories if s in ['vodka', 'gin', 'rum', 'tequila', 'whiskey', 'stout']]
+        elif has_wine:
+            # After wine: liqueurs good, light drinks okay, strong spirits not recommended
+            good_subs = [s for s in available_subcategories if s in ['liqueur', 'sparkling', 'cocktail']]
+            okay_subs = [s for s in available_subcategories if s in ['red_wine', 'white_wine', 'beer']]
+            bad_subs = [s for s in available_subcategories if s in ['vodka', 'gin', 'rum', 'tequila', 'whiskey', 'ipa', 'stout']]
+        elif has_beer:
+            # After beer: similar beers okay, wines good, strong spirits not great
+            good_subs = [s for s in available_subcategories if s in ['white_wine', 'sparkling', 'lager']]
+            okay_subs = [s for s in available_subcategories if s in ['beer', 'ipa', 'cocktail']]
+            bad_subs = [s for s in available_subcategories if s in ['vodka', 'whiskey', 'red_wine', 'stout']]
         else:
-            # Default: random selection
-            random.shuffle(available_drinks)
-            good = available_drinks[:3]
-            okay = available_drinks[3:6]
-            not_recommended = available_drinks[6:9]
+            # Default: random distribution
+            random.shuffle(available_subcategories)
+            good_subs = available_subcategories[:3]
+            okay_subs = available_subcategories[3:6]
+            bad_subs = available_subcategories[6:9]
 
-        # Pad with random if not enough
-        if len(good) < 3:
-            remaining = [d for d in available_drinks if d not in good]
-            random.shuffle(remaining)
-            good.extend(remaining[:3 - len(good)])
-        if len(okay) < 3:
-            remaining = [d for d in available_drinks if d not in good and d not in okay]
-            random.shuffle(remaining)
-            okay.extend(remaining[:3 - len(okay)])
-        if len(not_recommended) < 3:
-            remaining = [d for d in available_drinks if d not in good and d not in okay and d not in not_recommended]
-            random.shuffle(remaining)
-            not_recommended.extend(remaining[:3 - len(not_recommended)])
+        # Pad lists if needed
+        all_available = set(available_subcategories)
+        used = set()
+
+        while len(good_subs) < 3 and len(all_available - used) > 0:
+            remaining = list(all_available - used - set(okay_subs) - set(bad_subs))
+            if remaining:
+                good_subs.append(remaining[0])
+                used.add(remaining[0])
+
+        while len(okay_subs) < 3 and len(all_available - used) > 0:
+            remaining = list(all_available - used - set(good_subs) - set(bad_subs))
+            if remaining:
+                okay_subs.append(remaining[0])
+                used.add(remaining[0])
+
+        while len(bad_subs) < 3 and len(all_available - used) > 0:
+            remaining = list(all_available - used - set(good_subs) - set(okay_subs))
+            if remaining:
+                bad_subs.append(remaining[0])
+                used.add(remaining[0])
 
         return {
             "good_combinations": [
                 {
-                    "drink_name": d.name,
-                    "explanation": f"Pairs nicely with {consumed_drinks[0]} - complementary flavor profile."
+                    "drink_name": get_category_name(sub),
+                    "explanation": get_explanation(sub, 'good', consumed_details)
                 }
-                for d in good[:3]
+                for sub in good_subs[:3]
             ],
             "okay_combinations": [
                 {
-                    "drink_name": d.name,
-                    "explanation": f"An acceptable choice after {consumed_drinks[0]} - won't clash significantly."
+                    "drink_name": get_category_name(sub),
+                    "explanation": get_explanation(sub, 'okay', consumed_details)
                 }
-                for d in okay[:3]
+                for sub in okay_subs[:3]
             ],
             "not_recommended": [
                 {
-                    "drink_name": d.name,
-                    "explanation": f"May not pair well with {consumed_drinks[0]} - consider other options."
+                    "drink_name": get_category_name(sub),
+                    "explanation": get_explanation(sub, 'bad', consumed_details)
                 }
-                for d in not_recommended[:3]
+                for sub in bad_subs[:3]
             ]
         }
 

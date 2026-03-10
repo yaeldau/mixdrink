@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, Loader2, RefreshCw, Wine } from 'lucide-react';
 
 interface Drink {

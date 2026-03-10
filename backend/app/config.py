@@ -10,14 +10,17 @@ class Settings(BaseSettings):
     anthropic_api_key: str
     database_url: Optional[str] = None
     postgres_url: Optional[str] = None  # Vercel Postgres variable
+    postgres_url_non_pooling: Optional[str] = None  # Vercel Postgres non-pooling (for migrations)
+    postgres_prisma_url: Optional[str] = None  # Vercel Postgres Prisma URL
     cors_origins: str = '["http://localhost:5173"]'
     claude_model: str = "claude-sonnet-4-5"
     max_tokens: int = 4096
 
     @property
     def db_url(self) -> str:
-        """Get database URL from either DATABASE_URL or POSTGRES_URL."""
-        url = self.database_url or self.postgres_url
+        """Get database URL from environment variables."""
+        # Prefer POSTGRES_PRISMA_URL (connection pooling) for Vercel
+        url = self.postgres_prisma_url or self.postgres_url or self.database_url
         if not url:
             return "postgresql+asyncpg://postgres:postgres@localhost:5432/mixdrink_db"
         # Convert postgres:// to postgresql+asyncpg://
@@ -25,6 +28,9 @@ class Settings(BaseSettings):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # Add pgbouncer=true for pooling if using POSTGRES_PRISMA_URL
+        if self.postgres_prisma_url and "pgbouncer=true" not in url:
+            url += "?pgbouncer=true" if "?" not in url else "&pgbouncer=true"
         return url
 
     @property

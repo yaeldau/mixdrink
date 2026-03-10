@@ -883,4 +883,98 @@ DRINKS_DATA = [
         "ingredients": ["Cachaça", "Lime", "Sugar"],
         "image_url": None
     },
+
+    # SPIRITS - Cognac & Brandy
+    {
+        "name": "Cognac",
+        "category": "spirit",
+        "subcategory": "cognac",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 4, "bitter": 2, "sour": 1, "savory": 3, "fruity": 4},
+        "description": "French grape brandy from the Cognac region, smooth and complex",
+        "base_spirit": None,
+        "ingredients": ["Cognac"],
+        "image_url": None
+    },
+    {
+        "name": "Hennessy VS",
+        "category": "spirit",
+        "subcategory": "cognac",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 4, "bitter": 2, "sour": 1, "savory": 3, "fruity": 4},
+        "description": "Premium cognac with oak and fruit notes",
+        "base_spirit": None,
+        "ingredients": ["Cognac"],
+        "image_url": None
+    },
+    {
+        "name": "Brandy",
+        "category": "spirit",
+        "subcategory": "brandy",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 4, "bitter": 2, "sour": 1, "savory": 2, "fruity": 4},
+        "description": "Distilled wine spirit, rich and warming",
+        "base_spirit": None,
+        "ingredients": ["Brandy"],
+        "image_url": None
+    },
+    {
+        "name": "Armagnac",
+        "category": "spirit",
+        "subcategory": "brandy",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 3, "bitter": 2, "sour": 1, "savory": 3, "fruity": 4},
+        "description": "French brandy from Gascony, rustic and bold",
+        "base_spirit": None,
+        "ingredients": ["Armagnac"],
+        "image_url": None
+    },
+    {
+        "name": "Calvados",
+        "category": "spirit",
+        "subcategory": "brandy",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 4, "bitter": 1, "sour": 2, "savory": 2, "fruity": 5},
+        "description": "Apple brandy from Normandy, France",
+        "base_spirit": None,
+        "ingredients": ["Apple brandy"],
+        "image_url": None
+    },
+
+    # SPIRITS - Mezcal & Pisco
+    {
+        "name": "Mezcal",
+        "category": "spirit",
+        "subcategory": "mezcal",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 2, "bitter": 3, "sour": 1, "savory": 4, "fruity": 2},
+        "description": "Smoky Mexican agave spirit",
+        "base_spirit": None,
+        "ingredients": ["Mezcal"],
+        "image_url": None
+    },
+    {
+        "name": "Pisco",
+        "category": "spirit",
+        "subcategory": "pisco",
+        "alcohol_content": 40.0,
+        "flavor_profile": {"sweet": 3, "bitter": 1, "sour": 1, "savory": 2, "fruity": 4},
+        "description": "South American grape brandy, clear and aromatic",
+        "base_spirit": None,
+        "ingredients": ["Pisco"],
+        "image_url": None
+    },
+
+    # SPIRITS - Sake
+    {
+        "name": "Sake",
+        "category": "spirit",
+        "subcategory": "sake",
+        "alcohol_content": 15.0,
+        "flavor_profile": {"sweet": 3, "bitter": 1, "sour": 2, "savory": 3, "fruity": 2},
+        "description": "Japanese rice wine, delicate and smooth",
+        "base_spirit": None,
+        "ingredients": ["Rice wine"],
+        "image_url": None
+    },
 ]

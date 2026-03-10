@@ -7,11 +7,14 @@ const getDrinkIcon = (drinkName: string) => {
   if (name.includes('wine')) return '🍷';
   if (name.includes('champagne') || name.includes('sparkling')) return '🥂';
   if (name.includes('beer') || name.includes('ipa') || name.includes('lager') || name.includes('stout')) return '🍺';
-  if (name.includes('vodka')) return '🥃';
-  if (name.includes('whiskey') || name.includes('bourbon') || name.includes('scotch')) return '🥃';
+  if (name.includes('cognac') || name.includes('brandy')) return '🥃';
+  if (name.includes('vodka')) return '🍸';
+  if (name.includes('whiskey') || name.includes('bourbon') || name.includes('scotch') || name.includes('rye')) return '🥃';
   if (name.includes('gin')) return '🍸';
   if (name.includes('rum')) return '🍹';
-  if (name.includes('tequila')) return '🍹';
+  if (name.includes('tequila') || name.includes('mezcal')) return '🍹';
+  if (name.includes('sake')) return '🍶';
+  if (name.includes('pisco')) return '🥃';
   if (name.includes('cocktail')) return '🍸';
   if (name.includes('liqueur')) return '🥃';
   return '🥤';

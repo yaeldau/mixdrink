@@ -26,6 +26,15 @@ class Settings(BaseSettings):
         if not url:
             return "postgresql+asyncpg://postgres:postgres@localhost:5432/mixdrink_db"
 
+        # Log which URL is being used (helpful for debugging)
+        import sys
+        if self.postgres_url_non_pooling:
+            print(f"Using POSTGRES_URL_NON_POOLING", file=sys.stderr)
+        elif self.postgres_url:
+            print(f"Using POSTGRES_URL", file=sys.stderr)
+        else:
+            print(f"Using DATABASE_URL", file=sys.stderr)
+
         # Convert postgres:// to postgresql+asyncpg://
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)

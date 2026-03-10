@@ -1,23 +1,51 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.pool import NullPool
 from app.config import settings
+from urllib.parse import urlparse
+import asyncpg
 
-# Create async engine with pgbouncer workarounds
+
+async def create_asyncpg_connection():
+    """
+    Create asyncpg connection with statement_cache_size=0 for pgbouncer compatibility.
+    This is a workaround for Vercel Postgres which uses pgbouncer in transaction mode.
+    """
+    # Get clean database URL
+    db_url = settings.db_url
+
+    # Parse URL to extract connection parameters
+    # Convert postgresql+asyncpg:// back to postgres:// for parsing
+    url_for_parsing = db_url.replace("postgresql+asyncpg://", "postgres://")
+    parsed = urlparse(url_for_parsing)
+
+    # Extract connection details
+    user = parsed.username
+    password = parsed.password
+    host = parsed.hostname
+    port = parsed.port or 5432
+    database = parsed.path.lstrip('/') if parsed.path else 'postgres'
+
+    # Create connection with statement_cache_size=0 to disable prepared statements
+    conn = await asyncpg.connect(
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+        database=database,
+        statement_cache_size=0,  # CRITICAL: Disables prepared statements for pgbouncer
+        timeout=60
+    )
+
+    return conn
+
+
+# Create async engine using custom connection function
 engine = create_async_engine(
     settings.db_url,
     echo=True,  # Log SQL queries (disable in production)
     future=True,
-    poolclass=NullPool,  # Disable connection pooling (pgbouncer handles pooling)
-    connect_args={
-        "statement_cache_size": 0,  # Disable prepared statements for pgbouncer
-        "server_settings": {
-            "jit": "off"  # Disable JIT
-        }
-    },
-    execution_options={
-        "compiled_cache": None  # Disable SQL compilation caching
-    }
+    async_creator=create_asyncpg_connection,  # Use custom connection function
+    pool_pre_ping=True  # Verify connections before using
 )
 
 # Create async session factory

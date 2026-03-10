@@ -82,6 +82,42 @@ async def init_database():
         return {"status": "error", "message": str(e)}
 
 
+@app.post("/api/refresh-db")
+async def refresh_database():
+    """Refresh database with latest seed data (adds new drinks, doesn't delete existing)."""
+    from app.db.database import AsyncSessionLocal
+    from app.db.models import Drink
+    from app.db.seed_data import DRINKS_DATA
+    from sqlalchemy import select
+
+    try:
+        async with AsyncSessionLocal() as session:
+            # Get existing drink names
+            result = await session.execute(select(Drink.name))
+            existing_names = {name for (name,) in result.all()}
+
+            # Add only new drinks
+            new_drinks = [
+                Drink(**drink_data)
+                for drink_data in DRINKS_DATA
+                if drink_data['name'] not in existing_names
+            ]
+
+            if new_drinks:
+                session.add_all(new_drinks)
+                await session.commit()
+                return {
+                    "status": "success",
+                    "message": f"Added {len(new_drinks)} new drinks",
+                    "new_drinks": [d.name for d in new_drinks]
+                }
+            else:
+                return {"status": "success", "message": "No new drinks to add"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
 # Route registration
 from app.api.routes import drinks, session, recommendations, pairing
 

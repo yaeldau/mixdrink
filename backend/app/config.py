@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from typing import List, Optional
 import json
 import os
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 
 class Settings(BaseSettings):
@@ -23,11 +24,32 @@ class Settings(BaseSettings):
         url = self.postgres_url or self.database_url
         if not url:
             return "postgresql+asyncpg://postgres:postgres@localhost:5432/mixdrink_db"
+
         # Convert postgres:// to postgresql+asyncpg://
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+        # Parse URL and remove problematic query parameters
+        parsed = urlparse(url)
+        if parsed.query:
+            # Parse query string
+            query_params = parse_qs(parsed.query)
+            # Remove sslmode parameter (asyncpg doesn't support it)
+            query_params.pop('sslmode', None)
+            # Rebuild query string
+            new_query = urlencode(query_params, doseq=True)
+            # Rebuild URL
+            url = urlunparse((
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment
+            ))
+
         return url
 
     @property

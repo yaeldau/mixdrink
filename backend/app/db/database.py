@@ -1,51 +1,27 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.pool import NullPool
 from app.config import settings
-from urllib.parse import urlparse
-import asyncpg
 
-
-async def create_asyncpg_connection():
-    """
-    Create asyncpg connection with statement_cache_size=0 for pgbouncer compatibility.
-    This is a workaround for Vercel Postgres which uses pgbouncer in transaction mode.
-    """
-    # Get clean database URL
-    db_url = settings.db_url
-
-    # Parse URL to extract connection parameters
-    # Convert postgresql+asyncpg:// back to postgres:// for parsing
-    url_for_parsing = db_url.replace("postgresql+asyncpg://", "postgres://")
-    parsed = urlparse(url_for_parsing)
-
-    # Extract connection details
-    user = parsed.username
-    password = parsed.password
-    host = parsed.hostname
-    port = parsed.port or 5432
-    database = parsed.path.lstrip('/') if parsed.path else 'postgres'
-
-    # Create connection with statement_cache_size=0 to disable prepared statements
-    conn = await asyncpg.connect(
-        user=user,
-        password=password,
-        host=host,
-        port=port,
-        database=database,
-        statement_cache_size=0,  # CRITICAL: Disables prepared statements for pgbouncer
-        timeout=60
-    )
-
-    return conn
-
-
-# Create async engine using custom connection function
+# Create async engine
+# CRITICAL WORKAROUND FOR VERCEL POSTGRES + PGBOUNCER:
+# Even POSTGRES_URL_NON_POOLING uses pgbouncer, so we need to disable prepared statements
+# by using NullPool and relying on the statement_cache_size parameter in the URL
 engine = create_async_engine(
     settings.db_url,
     echo=True,  # Log SQL queries (disable in production)
-    future=True,
-    async_creator=create_asyncpg_connection,  # Use custom connection function
-    pool_pre_ping=True  # Verify connections before using
+    poolclass=NullPool,  # Disable SQLAlchemy pooling (let pgbouncer handle it)
+    connect_args={
+        "statement_cache_size": 0,  # Disable asyncpg prepared statements
+        "server_settings": {
+            "jit": "off",  # Disable JIT
+            "application_name": "mixdrink"
+        }
+    },
+    execution_options={
+        "compiled_cache": None,  # Disable SQL compilation caching
+        "schema_translate_map": None
+    }
 )
 
 # Create async session factory

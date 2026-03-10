@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     @property
     def db_url(self) -> str:
         """Get database URL from environment variables."""
-        # Prefer POSTGRES_PRISMA_URL (connection pooling) for Vercel
-        url = self.postgres_prisma_url or self.postgres_url or self.database_url
+        # Use POSTGRES_URL (direct connection, better for asyncpg)
+        url = self.postgres_url or self.database_url
         if not url:
             return "postgresql+asyncpg://postgres:postgres@localhost:5432/mixdrink_db"
         # Convert postgres:// to postgresql+asyncpg://
@@ -28,9 +28,6 @@ class Settings(BaseSettings):
             url = url.replace("postgres://", "postgresql+asyncpg://", 1)
         elif url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        # Add pgbouncer=true for pooling if using POSTGRES_PRISMA_URL
-        if self.postgres_prisma_url and "pgbouncer=true" not in url:
-            url += "?pgbouncer=true" if "?" not in url else "&pgbouncer=true"
         return url
 
     @property

@@ -24,6 +24,24 @@ async def health_check():
     return {"status": "healthy", "service": "mixdrink-api"}
 
 
+@app.get("/api/debug/db-url")
+async def debug_db_url():
+    """Debug endpoint to check which database URL is being used."""
+    from app.config import settings
+    from urllib.parse import urlparse
+
+    parsed = urlparse(settings.db_url)
+    # Mask password for security
+    masked_url = f"{parsed.scheme}://{parsed.username}:****@{parsed.hostname}:{parsed.port}{parsed.path}"
+
+    return {
+        "using_non_pooling": settings.postgres_url_non_pooling is not None,
+        "using_postgres_url": settings.postgres_url is not None,
+        "masked_url": masked_url,
+        "has_statement_cache_param": "statement_cache_size" in (parsed.query or "")
+    }
+
+
 @app.get("/")
 async def root():
     """Root endpoint."""

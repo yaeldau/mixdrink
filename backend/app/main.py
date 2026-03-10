@@ -1,43 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from app.config import settings
-from app.db.database import engine, Base
-from app.db.models import Drink
-from app.db.seed_data import DRINKS_DATA
-from sqlalchemy import select
-from app.db.database import AsyncSessionLocal
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
-    # Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # Seed drinks if empty
-    async with AsyncSessionLocal() as session:
-        result = await session.execute(select(Drink))
-        existing_drinks = result.scalars().all()
-
-        if not existing_drinks:
-            drinks_to_add = [Drink(**drink_data) for drink_data in DRINKS_DATA]
-            session.add_all(drinks_to_add)
-            await session.commit()
-            print(f"Seeded {len(drinks_to_add)} drinks")
-
-    yield
-
-    # Cleanup
-    await engine.dispose()
-
 
 app = FastAPI(
     title="MixDrink API",
     description="AI-powered drink pairing recommendations",
-    version="1.0.0",
-    lifespan=lifespan
+    version="1.0.0"
 )
 
 # Configure CORS
@@ -64,6 +32,36 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
+
+@app.post("/api/init-db")
+async def init_database():
+    """Initialize database tables and seed data."""
+    from app.db.database import engine, Base, AsyncSessionLocal
+    from app.db.models import Drink
+    from app.db.seed_data import DRINKS_DATA
+    from sqlalchemy import select
+
+    try:
+        # Create tables
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        # Seed drinks if empty
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(select(Drink))
+            existing_drinks = result.scalars().all()
+
+            if not existing_drinks:
+                drinks_to_add = [Drink(**drink_data) for drink_data in DRINKS_DATA]
+                session.add_all(drinks_to_add)
+                await session.commit()
+                return {"status": "success", "message": f"Database initialized and seeded with {len(drinks_to_add)} drinks"}
+            else:
+                return {"status": "success", "message": f"Database already contains {len(existing_drinks)} drinks"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
 # Route registration

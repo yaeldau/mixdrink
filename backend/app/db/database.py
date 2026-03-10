@@ -1,17 +1,13 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.pool import NullPool
 from app.config import settings
 
 # Create async engine
-# Disable connection pooling and prepared statements for Vercel Postgres (pgbouncer compatibility)
+# Uses POSTGRES_URL_NON_POOLING to bypass pgbouncer (no prepared statement issues)
 engine = create_async_engine(
     settings.db_url,
     echo=True,  # Log SQL queries (disable in production)
-    poolclass=NullPool,  # Disable SQLAlchemy connection pooling (pgbouncer handles it)
-    connect_args={
-        "statement_cache_size": 0  # Disable asyncpg prepared statements for pgbouncer
-    }
+    future=True
 )
 
 # Create async session factory

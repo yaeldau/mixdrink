@@ -20,8 +20,9 @@ class Settings(BaseSettings):
     @property
     def db_url(self) -> str:
         """Get database URL from environment variables."""
-        # Use POSTGRES_URL (direct connection, better for asyncpg)
-        url = self.postgres_url or self.database_url
+        # Use POSTGRES_URL_NON_POOLING to bypass pgbouncer (avoids prepared statement issues)
+        # Fall back to POSTGRES_URL if non-pooling URL is not available
+        url = self.postgres_url_non_pooling or self.postgres_url or self.database_url
         if not url:
             return "postgresql+asyncpg://postgres:postgres@localhost:5432/mixdrink_db"
 
